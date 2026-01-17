@@ -78,6 +78,7 @@ void ZHJT03Climate::send_state_frame_() {
 
   auto m = this->climate::Climate::mode;
   uint16_t temp_mode = (temp_code(t) << 8) | mode_code(m);
+  ESP_LOGD("zhjt03", "send_state_frame_ mode=%d target=%.1f", (int)this->climate::Climate::mode, this->climate::Climate::target_temperature);
 
   this->transmit_frame_(0xFF00, 0xFF00, 0x7F80, FAN_AUTO_FIXED, temp_mode, 0x54AB);
 }
@@ -90,7 +91,8 @@ void ZHJT03Climate::transmit_frame_(uint16_t timer,
                                    uint16_t temp_mode,
                                    uint16_t footer) {
   if (this->tx_ == nullptr) return;
-
+  ESP_LOGD("zhjt03", "transmit_frame_ called. tx_=%p", (void*) this->tx_);
+                                    
   // En esta versión de ESPHome, la frecuencia se define en el componente transmisor
   // (o se mantiene la default si ya la pones desde YAML).
   // Si tu build soporta set_carrier_frequency en el componente, descomenta:
