@@ -90,25 +90,18 @@ void ZHJT03Climate::transmit_frame_(uint16_t timer,
                                    uint16_t fan,
                                    uint16_t temp_mode,
                                    uint16_t footer) {
-  ESP_LOGD("zhjt03", "transmit_frame_ called. tx_=%p", (void*) this->tx_);
   if (this->tx_ == nullptr) return;
-
-  // Intento 1: setear frecuencia en el transmisor (si existe en tu versión)
-  // Si NO compila, lo comentas.
-  // this->tx_->set_carrier_frequency(38000);
 
   auto call = this->tx_->transmit();
   auto *d = call.get_data();
   if (d == nullptr) return;
 
-  // Intento 2: setear frecuencia en el data (si existe en tu versión)
-  // Si NO compila, lo comentas.
-  // d->set_carrier_frequency(38000);
+  // CLAVE: portadora 38kHz (sin esto el receptor IR no “ve” nada)
+  d->set_carrier_frequency(38000);
 
-  // Repetición típica para AC
-  // Si estas funciones no existen en tu build, bórralas.
-  // call.set_send_times(2);
-  // call.set_send_wait(20);
+  // (opcional) repetir para AC
+  call.set_send_times(2);
+  call.set_send_wait(20);
 
   auto send_word = [&](uint16_t w) {
     for (int i = 15; i >= 0; i--) {
@@ -132,7 +125,15 @@ void ZHJT03Climate::transmit_frame_(uint16_t timer,
   d->mark(616);
 
   call.perform();
-  ESP_LOGD("zhjt03", "transmit_frame_ perform() done");
+}
+
+void ZHJT03Climate::setup() {
+  if (this->sensor_ != nullptr) {
+    this->sensor_->add_on_state_callback([this](float v) {
+      this->current_temperature = v;
+      this->publish_state();
+    });
+  }
 }
 
 
