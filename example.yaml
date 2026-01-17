@@ -5,6 +5,7 @@ external_components:
     components: [ zhjt03_climate ]
 
 remote_transmitter:
+  id: ir_tx
   pin: GPIO33
   carrier_duty_percent: 50%
 

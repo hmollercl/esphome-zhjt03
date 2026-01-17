@@ -77,23 +77,29 @@ void ZHJT03Climate::transmit_frame_(uint16_t timer,
                                    uint16_t footer) {
   if (this->tx_ == nullptr) return;
 
-  auto call = this->tx_->transmit();
-  call.set_carrier_frequency(38000);
-  call.set_send_times(2);
-  call.set_send_wait(20);
+  // En esta versión de ESPHome, la frecuencia se define en el componente transmisor
+  // (o se mantiene la default si ya la pones desde YAML).
+  // Si tu build soporta set_carrier_frequency en el componente, descomenta:
+  // this->tx_->set_carrier_frequency(38000);
 
-  auto &d = call.get_data();
+  auto call = this->tx_->transmit();
+
+  // get_data() devuelve puntero en tu versión
+  auto *d = call.get_data();
+  if (d == nullptr) return;
 
   auto send_word = [&](uint16_t w) {
     for (int i = 15; i >= 0; i--) {
-      d.mark(560);
-      d.space((w & (1 << i)) ? 1690 : 560);
+      d->mark(560);
+      d->space((w & (1 << i)) ? 1690 : 560);
     }
   };
 
-  d.mark(6234);
-  d.space(7392);
+  // Header
+  d->mark(6234);
+  d->space(7392);
 
+  // 6 words
   send_word(timer);
   send_word(extra);
   send_word(main_cmd);
@@ -101,12 +107,14 @@ void ZHJT03Climate::transmit_frame_(uint16_t timer,
   send_word(temp_mode);
   send_word(footer);
 
-  d.mark(608);
-  d.space(7372);
-  d.mark(616);
+  // Footer pulses
+  d->mark(608);
+  d->space(7372);
+  d->mark(616);
 
   call.perform();
 }
+
 
 }  // namespace zhjt03
 }  // namespace esphome
