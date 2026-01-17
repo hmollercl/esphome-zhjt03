@@ -1,0 +1,21 @@
+external_components:
+  - source:
+      type: git
+      url: https://github.com/TU_USUARIO/esphome-zhjt03
+    components: [ zhjt03_climate ]
+
+remote_transmitter:
+  pin: GPIO33
+  carrier_duty_percent: 50%
+
+sensor:
+  - platform: dht
+    pin: GPIO26
+    model: DHT11
+    temperature:
+      id: temp_amb
+
+climate:
+  - platform: zhjt03_climate
+    name: "ZHJT_03 AC"
+    sensor: temp_amb
