@@ -1,5 +1,4 @@
 #include "zhjt03_climate.h"
-#include "esphome/core/log.h"
 #include <cmath>
 
 namespace esphome {
@@ -21,12 +20,11 @@ static uint8_t mode_code(climate::ClimateMode m) {
   }
 }
 
-// Fan auto + swing fijo (ajustable después)
 static const uint16_t FAN_AUTO_FIXED = 0xBF40;
 
 climate::ClimateTraits ZHJT03Climate::traits() {
   auto t = climate::ClimateTraits();
-  t.set_supports_current_temperature(true);
+  t.set_supports_current_temperature(true);  // warning OK por ahora
   t.set_supported_modes({climate::CLIMATE_MODE_OFF, climate::CLIMATE_MODE_AUTO, climate::CLIMATE_MODE_COOL,
                          climate::CLIMATE_MODE_HEAT, climate::CLIMATE_MODE_DRY, climate::CLIMATE_MODE_FAN_ONLY});
   t.set_visual_min_temperature(16);
@@ -80,10 +78,9 @@ void ZHJT03Climate::transmit_frame_(uint16_t timer,
   if (this->tx_ == nullptr) return;
 
   auto call = this->tx_->transmit();
+  call.set_carrier_frequency(38000);
   call.set_send_times(2);
   call.set_send_wait(20);
-
-  call.set_carrier_frequency(38000);
 
   auto &d = call.get_data();
 
@@ -94,11 +91,9 @@ void ZHJT03Climate::transmit_frame_(uint16_t timer,
     }
   };
 
-  // Header
   d.mark(6234);
   d.space(7392);
 
-  // 6 words
   send_word(timer);
   send_word(extra);
   send_word(main_cmd);
@@ -106,12 +101,10 @@ void ZHJT03Climate::transmit_frame_(uint16_t timer,
   send_word(temp_mode);
   send_word(footer);
 
-  // Footer pulses
   d.mark(608);
   d.space(7372);
   d.mark(616);
 
-  // enviar
   call.perform();
 }
 
