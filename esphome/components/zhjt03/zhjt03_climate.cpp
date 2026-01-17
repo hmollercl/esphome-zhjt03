@@ -71,33 +71,48 @@ void ZHJT03Climate::send_state_frame_() {
   this->transmit_frame_(0xFF00, 0xFF00, 0x7F80, FAN_AUTO_FIXED, temp_mode, 0x54AB);
 }
 
-void ZHJT03Climate::transmit_frame_(uint16_t timer, uint16_t extra, uint16_t main_cmd, uint16_t fan, uint16_t temp_mode, uint16_t footer) {
+void ZHJT03Climate::transmit_frame_(uint16_t timer,
+                                   uint16_t extra,
+                                   uint16_t main_cmd,
+                                   uint16_t fan,
+                                   uint16_t temp_mode,
+                                   uint16_t footer) {
   if (this->tx_ == nullptr) return;
 
-  this->tx_->transmit([&](remote_transmitter::RemoteTransmitData *d) {
-    d->set_carrier_frequency(38000);
+  auto call = this->tx_->transmit();
+  call.set_send_times(2);
+  call.set_send_wait(20);
 
-    auto send_word = [&](uint16_t w) {
-      for (int i = 15; i >= 0; i--) {
-        d->mark(560);
-        d->space((w & (1 << i)) ? 1690 : 560);
-      }
-    };
+  call.set_carrier_frequency(38000);
 
-    d->mark(6234);
-    d->space(7392);
+  auto &d = call.get_data();
 
-    send_word(timer);
-    send_word(extra);
-    send_word(main_cmd);
-    send_word(fan);
-    send_word(temp_mode);
-    send_word(footer);
+  auto send_word = [&](uint16_t w) {
+    for (int i = 15; i >= 0; i--) {
+      d.mark(560);
+      d.space((w & (1 << i)) ? 1690 : 560);
+    }
+  };
 
-    d->mark(608);
-    d->space(7372);
-    d->mark(616);
-  });
+  // Header
+  d.mark(6234);
+  d.space(7392);
+
+  // 6 words
+  send_word(timer);
+  send_word(extra);
+  send_word(main_cmd);
+  send_word(fan);
+  send_word(temp_mode);
+  send_word(footer);
+
+  // Footer pulses
+  d.mark(608);
+  d.space(7372);
+  d.mark(616);
+
+  // enviar
+  call.perform();
 }
 
 }  // namespace zhjt03
