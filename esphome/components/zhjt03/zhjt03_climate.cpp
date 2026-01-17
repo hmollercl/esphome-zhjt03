@@ -34,40 +34,35 @@ climate::ClimateTraits ZHJT03Climate::traits() {
 }
 
 void ZHJT03Climate::control(const climate::ClimateCall &call) {
-  // 1) Cambios de modo
   if (call.get_mode().has_value()) {
     auto m = *call.get_mode();
 
     if (m == climate::CLIMATE_MODE_OFF) {
-      // OFF: toggle solo si creíamos que estaba encendido
-      if (this->power_) {
-        this->send_power_toggle_();
-      }
+      if (this->power_) this->send_power_toggle_();
       this->power_ = false;
-      this->mode = climate::CLIMATE_MODE_OFF;
+
+      // ✅ fuerza escritura en el miembro del base
+      this->climate::Climate::mode = climate::CLIMATE_MODE_OFF;
       this->publish_state();
       return;
     }
 
-    // Cualquier otro modo = ON optimista
     this->power_ = true;
-    this->mode = m;
+    // ✅ fuerza escritura en el miembro del base
+    this->climate::Climate::mode = m;
   }
 
-  // 2) Temperatura objetivo
   if (call.get_target_temperature().has_value()) {
-    this->target_temperature = *call.get_target_temperature();
-  } else if (std::isnan(this->target_temperature)) {
-    // fallback por si viene NaN la primera vez
-    this->target_temperature = 24;
+    // ✅ fuerza escritura en el miembro del base
+    this->climate::Climate::target_temperature = *call.get_target_temperature();
+  } else if (std::isnan(this->climate::Climate::target_temperature)) {
+    this->climate::Climate::target_temperature = 24;
   }
 
-  // 3) Enviar frame de estado completo si estamos ON
-  if (this->mode != climate::CLIMATE_MODE_OFF) {
+  if (this->climate::Climate::mode != climate::CLIMATE_MODE_OFF) {
     this->send_state_frame_();
   }
 
-  // 4) Publicar estado final (NO debe volver a OFF)
   this->publish_state();
 }
 
@@ -77,21 +72,14 @@ void ZHJT03Climate::send_power_toggle_() {
 }
 
 void ZHJT03Climate::send_state_frame_() {
-  uint8_t t = (uint8_t) lroundf(this->target_temperature);
+  uint8_t t = (uint8_t) lroundf(this->climate::Climate::target_temperature);
   if (t < 16) t = 16;
   if (t > 31) t = 31;
 
-  uint16_t temp_mode = (temp_code(t) << 8) | mode_code(this->mode);
+  auto m = this->climate::Climate::mode;
+  uint16_t temp_mode = (temp_code(t) << 8) | mode_code(m);
 
-  // Frame completo
-  this->transmit_frame_(
-      0xFF00,      // timer
-      0xFF00,      // extra
-      0x7F80,      // main: change mode/temp
-      FAN_AUTO_FIXED,
-      temp_mode,
-      0x54AB       // footer word fijo
-  );
+  this->transmit_frame_(0xFF00, 0xFF00, 0x7F80, FAN_AUTO_FIXED, temp_mode, 0x54AB);
 }
 
 

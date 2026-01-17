@@ -20,8 +20,8 @@ class ZHJT03Climate : public climate::Climate, public Component {
   remote_transmitter::RemoteTransmitterComponent *tx_{nullptr};
 
   bool power_{false};
-  climate::ClimateMode mode_{climate::CLIMATE_MODE_OFF};
-  float target_temp_{24};
+  //climate::ClimateMode mode_{climate::CLIMATE_MODE_OFF};
+  //float target_temp_{24};
 
   void send_state_frame_();
   void send_power_toggle_();
