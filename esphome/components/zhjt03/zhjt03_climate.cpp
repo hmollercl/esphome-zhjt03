@@ -90,19 +90,25 @@ void ZHJT03Climate::transmit_frame_(uint16_t timer,
                                    uint16_t fan,
                                    uint16_t temp_mode,
                                    uint16_t footer) {
-  if (this->tx_ == nullptr) return;
   ESP_LOGD("zhjt03", "transmit_frame_ called. tx_=%p", (void*) this->tx_);
-                                    
-  // En esta versión de ESPHome, la frecuencia se define en el componente transmisor
-  // (o se mantiene la default si ya la pones desde YAML).
-  // Si tu build soporta set_carrier_frequency en el componente, descomenta:
+  if (this->tx_ == nullptr) return;
+
+  // Intento 1: setear frecuencia en el transmisor (si existe en tu versión)
+  // Si NO compila, lo comentas.
   // this->tx_->set_carrier_frequency(38000);
 
   auto call = this->tx_->transmit();
-
-  // get_data() devuelve puntero en tu versión
   auto *d = call.get_data();
   if (d == nullptr) return;
+
+  // Intento 2: setear frecuencia en el data (si existe en tu versión)
+  // Si NO compila, lo comentas.
+  // d->set_carrier_frequency(38000);
+
+  // Repetición típica para AC
+  // Si estas funciones no existen en tu build, bórralas.
+  // call.set_send_times(2);
+  // call.set_send_wait(20);
 
   auto send_word = [&](uint16_t w) {
     for (int i = 15; i >= 0; i--) {
@@ -111,11 +117,9 @@ void ZHJT03Climate::transmit_frame_(uint16_t timer,
     }
   };
 
-  // Header
   d->mark(6234);
   d->space(7392);
 
-  // 6 words
   send_word(timer);
   send_word(extra);
   send_word(main_cmd);
@@ -123,12 +127,12 @@ void ZHJT03Climate::transmit_frame_(uint16_t timer,
   send_word(temp_mode);
   send_word(footer);
 
-  // Footer pulses
   d->mark(608);
   d->space(7372);
   d->mark(616);
 
   call.perform();
+  ESP_LOGD("zhjt03", "transmit_frame_ perform() done");
 }
 
 
