@@ -1,7 +1,7 @@
 external_components:
   - source:
       type: git
-      url: https://github.com/TU_USUARIO/esphome-zhjt03
+      url: https://github.com/hmollercl/esphome-zhjt03/
     components: [ zhjt03_climate ]
 
 remote_transmitter:
@@ -16,6 +16,6 @@ sensor:
       id: temp_amb
 
 climate:
-  - platform: zhjt03_climate
+  - platform: zhjt03
     name: "ZHJT_03 AC"
     sensor: temp_amb
