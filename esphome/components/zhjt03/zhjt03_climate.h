@@ -2,6 +2,7 @@
 #include "esphome/components/climate/climate.h"
 #include "esphome/components/remote_transmitter/remote_transmitter.h"
 #include "esphome/components/sensor/sensor.h"
+#include "esphome/components/remote_base/raw_protocol.h"
 
 namespace esphome {
 namespace zhjt03 {
@@ -11,7 +12,7 @@ class ZHJT03Climate : public climate::Climate, public Component {
   void set_temperature_sensor(sensor::Sensor *sensor) { this->sensor_ = sensor; }
   void set_transmitter(remote_transmitter::RemoteTransmitterComponent *tx) { this->tx_ = tx; }
 
-  void setup() override {}
+  void setup() override;
   void control(const climate::ClimateCall &call) override;
   climate::ClimateTraits traits() override;
 

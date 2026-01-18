@@ -92,27 +92,26 @@ void ZHJT03Climate::transmit_frame_(uint16_t timer,
                                    uint16_t footer) {
   if (this->tx_ == nullptr) return;
 
-  auto call = this->tx_->transmit();
-  auto *d = call.get_data();
-  if (d == nullptr) return;
+  // Armamos lista RAW como lo muestra ESPHome receiver:
+  // mark positivo, space negativo
+  std::vector<int32_t> code;
+  code.reserve(2 + 6*32 + 3);
 
-  // CLAVE: portadora 38kHz (sin esto el receptor IR no “ve” nada)
-  d->set_carrier_frequency(38000);
-
-  // (opcional) repetir para AC
-  call.set_send_times(2);
-  call.set_send_wait(20);
+  auto push_mark = [&](int32_t us) { code.push_back(us); };
+  auto push_space = [&](int32_t us) { code.push_back(-us); };
 
   auto send_word = [&](uint16_t w) {
     for (int i = 15; i >= 0; i--) {
-      d->mark(560);
-      d->space((w & (1 << i)) ? 1690 : 560);
+      push_mark(560);
+      push_space((w & (1 << i)) ? 1690 : 560);
     }
   };
 
-  d->mark(6234);
-  d->space(7392);
+  // Header
+  push_mark(6234);
+  push_space(7392);
 
+  // 6 words
   send_word(timer);
   send_word(extra);
   send_word(main_cmd);
@@ -120,12 +119,18 @@ void ZHJT03Climate::transmit_frame_(uint16_t timer,
   send_word(temp_mode);
   send_word(footer);
 
-  d->mark(608);
-  d->space(7372);
-  d->mark(616);
+  // Footer pulses
+  push_mark(608);
+  push_space(7372);
+  push_mark(616);
 
-  call.perform();
+  // Enviar RAW usando el pipeline correcto del remote_transmitter
+  remote_base::RawProtocol::ProtocolData data;
+  data.code = code;
+
+  this->tx_->transmit<remote_base::RawProtocol>(data, /*send_times=*/2, /*send_wait=*/20);
 }
+
 
 void ZHJT03Climate::setup() {
   if (this->sensor_ != nullptr) {
