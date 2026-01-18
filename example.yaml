@@ -8,7 +8,6 @@ remote_transmitter:
   id: ir_tx
   pin: GPIO33
   carrier_duty_percent: 50%
-  carrier_frequency: 38kHz
 
 sensor:
   - platform: dht

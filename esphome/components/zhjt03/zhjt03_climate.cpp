@@ -92,26 +92,30 @@ void ZHJT03Climate::transmit_frame_(uint16_t timer,
                                    uint16_t footer) {
   if (this->tx_ == nullptr) return;
 
-  // Armamos lista RAW como lo muestra ESPHome receiver:
-  // mark positivo, space negativo
-  std::vector<int32_t> code;
-  code.reserve(2 + 6*32 + 3);
+  auto call = this->tx_->transmit();
+  auto *d = call.get_data();
+  if (d == nullptr) return;
 
-  auto push_mark = [&](int32_t us) { code.push_back(us); };
-  auto push_space = [&](int32_t us) { code.push_back(-us); };
+  // CLAVE: carrier en el DATA (tu build no lo tiene en call)
+  d->set_carrier_frequency(38000);
+
+  // si tu build soporta duty acá, ayuda (si no compila, bórralo)
+  // d->set_carrier_duty_percent(50);
+
+  // repetir para AC (si no compila, bórralo)
+  // call.set_send_times(2);
+  // call.set_send_wait(20);
 
   auto send_word = [&](uint16_t w) {
     for (int i = 15; i >= 0; i--) {
-      push_mark(560);
-      push_space((w & (1 << i)) ? 1690 : 560);
+      d->mark(560);
+      d->space((w & (1 << i)) ? 1690 : 560);
     }
   };
 
-  // Header
-  push_mark(6234);
-  push_space(7392);
+  d->mark(6234);
+  d->space(7392);
 
-  // 6 words
   send_word(timer);
   send_word(extra);
   send_word(main_cmd);
@@ -119,16 +123,11 @@ void ZHJT03Climate::transmit_frame_(uint16_t timer,
   send_word(temp_mode);
   send_word(footer);
 
-  // Footer pulses
-  push_mark(608);
-  push_space(7372);
-  push_mark(616);
+  d->mark(608);
+  d->space(7372);
+  d->mark(616);
 
-  // Enviar RAW usando el pipeline correcto del remote_transmitter
-  remote_base::RawProtocol::ProtocolData data;
-  data.code = code;
-
-  this->tx_->transmit<remote_base::RawProtocol>(data, /*send_times=*/2, /*send_wait=*/20);
+  call.perform();
 }
 
 
