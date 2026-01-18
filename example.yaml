@@ -1,7 +1,8 @@
 external_components:
   - source:
       type: git
-      url: https://github.com/hmollercl/esphome-zhjt03/
+      url: https://github.com/hmollercl/esphome-zhjt03
+      ref: main
     components: [ zhjt03_climate ]
 
 remote_transmitter:
